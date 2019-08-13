@@ -215,6 +215,7 @@ tls:
 | `next-upstream-tries` | The number of possible tries for passing a request to the next upstream server. See the [proxy_next_upstream_tries](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream_tries) directive. The `0` value turns off this limit. The default is `0`. | `int` | No |
 | `tls` | The TLS configuration for the Upstream. | [`tls`](#UpstreamTLS) | No |
 | `healthCheck` | The health check configuration for the Upstream. See the [health_check](http://nginx.org/en/docs/http/ngx_http_upstream_hc_module.html#health_check) directive. Note: this feature is supported only in NGINX Plus. | [`healthcheck`](#UpstreamHealthcheck) | No |
+| `slow-start` | The slow‑start allows an upstream server to gradually recover its weight from 0 to its nominal value after it has been recovered or became available or when the server becomes available after a period of time it was considered unavailable. Default value is zero seconds ("0s"), i.e. slow start is disabled. See the [slow-start](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#slow_start) parameter of the server directive. Note: The parameter cannot be used along with the hash and ip_hash load balancing methods. | `string` | No |
 
 ### Upstream.TLS
 

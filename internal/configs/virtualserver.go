@@ -334,6 +334,11 @@ func generateVirtualServerConfig(virtualServerEx *VirtualServerEx, tlsPemFileNam
 
 func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isExternalNameSvc bool, endpoints []string, cfgParams *ConfigParams) version2.Upstream {
 	var upsServers []version2.UpstreamServer
+	incompatibleLBMethods := map[string]bool{
+		"random":  true,
+		"ip-hash": true,
+		"hash":    true,
+	}
 
 	for _, e := range endpoints {
 		s := version2.UpstreamServer{
@@ -342,6 +347,12 @@ func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isEx
 			FailTimeout: generateString(upstream.FailTimeout, cfgParams.FailTimeout),
 			MaxConns:    generateIntFromPointer(upstream.MaxConns, cfgParams.MaxConns),
 			Resolve:     isExternalNameSvc,
+			SlowStart:   upstream.SlowStart,
+		}
+		if incompatibleLBMethods[upstream.LBMethod] {
+			//TODO trigger warning
+			glog.Warningf("The parameter slow-start cannot be used along with %s, load balancing method", upstream.LBMethod)
+			s.SlowStart = ""
 		}
 		upsServers = append(upsServers, s)
 	}

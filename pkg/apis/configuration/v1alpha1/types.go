@@ -41,6 +41,7 @@ type Upstream struct {
 	ProxyNextUpstreamTries   int          `json:"next-upstream-tries"`
 	TLS                      UpstreamTLS  `json:"tls"`
 	HealthCheck              *HealthCheck `json:"healthCheck"`
+	SlowStart                string       `json:"slow-start,omitempty"`
 }
 
 // UpstreamTLS defines a TLS configuration for an Upstream.

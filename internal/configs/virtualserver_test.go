@@ -238,7 +238,7 @@ func TestGenerateVirtualServerConfig(t *testing.T) {
 				Name: "vs_default_cafe_tea",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "10.0.0.20:80",
+						Address:   "10.0.0.20:80",
 					},
 				},
 				Keepalive: 16,
@@ -247,7 +247,7 @@ func TestGenerateVirtualServerConfig(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "10.0.0.30:80",
+						Address:   "10.0.0.30:80",
 					},
 				},
 				Keepalive: 16,
@@ -632,7 +632,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_tea-v2",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "10.0.0.21:80",
+						Address:   "10.0.0.21:80",
 					},
 				},
 			},
@@ -640,7 +640,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee-v1",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "10.0.0.30:80",
+						Address:   "10.0.0.30:80",
 					},
 				},
 			},
@@ -648,7 +648,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee-v2",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "10.0.0.31:80",
+						Address:   "10.0.0.31:80",
 					},
 				},
 			},
@@ -767,7 +767,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 
 func TestGenerateUpstream(t *testing.T) {
 	name := "test-upstream"
-	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80}
+	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart:"10s"}
 	endpoints := []string{
 		"192.168.10.10:8080",
 	}
@@ -787,6 +787,7 @@ func TestGenerateUpstream(t *testing.T) {
 				MaxFails:    1,
 				MaxConns:    0,
 				FailTimeout: "10s",
+				SlowStart:   "10s",
 			},
 		},
 		LBMethod:  "random",
@@ -820,7 +821,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "192.168.10.10:8080",
+						Address:   "192.168.10.10:8080",
 					},
 				},
 				Keepalive: 32,
@@ -834,7 +835,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "192.168.10.10:8080",
+						Address:   "192.168.10.10:8080",
 					},
 				},
 				Keepalive: 21,
@@ -848,7 +849,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address: "192.168.10.10:8080",
+						Address:   "192.168.10.10:8080",
 					},
 				},
 			},
