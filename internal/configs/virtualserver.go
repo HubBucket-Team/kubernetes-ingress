@@ -14,6 +14,12 @@ import (
 
 const nginx502Server = "unix:/var/run/nginx-502-server.sock"
 
+var incompatibleLBMethodsForSlowStart = map[string]bool{
+		"random":  true,
+		"ip-hash": true,
+		"hash":    true,
+	}
+
 // VirtualServerEx holds a VirtualServer along with the resources that are referenced in this VirtualServer.
 type VirtualServerEx struct {
 	VirtualServer       *conf_v1alpha1.VirtualServer
@@ -211,7 +217,7 @@ func generateVirtualServerConfig(virtualServerEx *VirtualServerEx, tlsPemFileNam
 		endpoints := generateEndpointsForUpstream(upstreamNamespace, u, virtualServerEx, isResolverConfigured, isPlus)
 		// isExternalNameSvc is always false for OSS
 		_, isExternalNameSvc := virtualServerEx.ExternalNameSvcs[GenerateExternalNameSvcKey(upstreamNamespace, u.Service)]
-		ups := generateUpstream(upstreamName, u, isExternalNameSvc, endpoints, baseCfgParams)
+		ups := generateUpstream(upstreamName, u, isExternalNameSvc, endpoints, baseCfgParams, isPlus)
 		upstreams = append(upstreams, ups)
 		crUpstreams[upstreamName] = u
 
@@ -231,7 +237,7 @@ func generateVirtualServerConfig(virtualServerEx *VirtualServerEx, tlsPemFileNam
 			endpoints := generateEndpointsForUpstream(upstreamNamespace, u, virtualServerEx, isResolverConfigured, isPlus)
 			// isExternalNameSvc is always false for OSS
 			_, isExternalNameSvc := virtualServerEx.ExternalNameSvcs[GenerateExternalNameSvcKey(upstreamNamespace, u.Service)]
-			ups := generateUpstream(upstreamName, u, isExternalNameSvc, endpoints, baseCfgParams)
+			ups := generateUpstream(upstreamName, u, isExternalNameSvc, endpoints, baseCfgParams, isPlus)
 			upstreams = append(upstreams, ups)
 			crUpstreams[upstreamName] = u
 
@@ -332,13 +338,10 @@ func generateVirtualServerConfig(virtualServerEx *VirtualServerEx, tlsPemFileNam
 	}
 }
 
-func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isExternalNameSvc bool, endpoints []string, cfgParams *ConfigParams) version2.Upstream {
+func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isExternalNameSvc bool, endpoints []string, cfgParams *ConfigParams, isPlus bool) version2.Upstream {
 	var upsServers []version2.UpstreamServer
-	incompatibleLBMethods := map[string]bool{
-		"random":  true,
-		"ip-hash": true,
-		"hash":    true,
-	}
+	lbMethod := generateLBMethod(upstream.LBMethod, cfgParams.LBMethod)
+	slowStart := generateSlowStartForPlus(upstream, lbMethod)
 
 	for _, e := range endpoints {
 		s := version2.UpstreamServer{
@@ -347,12 +350,10 @@ func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isEx
 			FailTimeout: generateString(upstream.FailTimeout, cfgParams.FailTimeout),
 			MaxConns:    generateIntFromPointer(upstream.MaxConns, cfgParams.MaxConns),
 			Resolve:     isExternalNameSvc,
-			SlowStart:   upstream.SlowStart,
 		}
-		if incompatibleLBMethods[upstream.LBMethod] {
-			//TODO trigger warning
-			glog.Warningf("The parameter slow-start cannot be used along with %s, load balancing method", upstream.LBMethod)
-			s.SlowStart = ""
+
+		if isPlus {
+			s.SlowStart = slowStart
 		}
 		upsServers = append(upsServers, s)
 	}
@@ -363,6 +364,23 @@ func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isEx
 		LBMethod:  generateLBMethod(upstream.LBMethod, cfgParams.LBMethod),
 		Keepalive: generateIntFromPointer(upstream.Keepalive, cfgParams.Keepalive),
 	}
+}
+
+func generateSlowStartForPlus(upstream conf_v1alpha1.Upstream, lbMethod string) string {
+
+	slowStart := upstream.SlowStart
+	var lLBMethod string
+	if strings.HasPrefix(lbMethod, "hash") {
+		lLBMethod, _ = validateHashLBMethod(lbMethod)
+	}
+
+	if upstream.SlowStart != "" && incompatibleLBMethodsForSlowStart[lLBMethod] {
+		//TODO trigger warning
+		glog.Warningf("slow-start will be disabled for the Upstream %v", upstream.Name)
+		slowStart = ""
+	}
+
+	return slowStart
 }
 
 func generateLBMethod(method string, defaultMethod string) string {

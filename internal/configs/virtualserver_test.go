@@ -238,7 +238,7 @@ func TestGenerateVirtualServerConfig(t *testing.T) {
 				Name: "vs_default_cafe_tea",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "10.0.0.20:80",
+						Address: "10.0.0.20:80",
 					},
 				},
 				Keepalive: 16,
@@ -247,7 +247,7 @@ func TestGenerateVirtualServerConfig(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "10.0.0.30:80",
+						Address: "10.0.0.30:80",
 					},
 				},
 				Keepalive: 16,
@@ -632,7 +632,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_tea-v2",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "10.0.0.21:80",
+						Address: "10.0.0.21:80",
 					},
 				},
 			},
@@ -640,7 +640,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee-v1",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "10.0.0.30:80",
+						Address: "10.0.0.30:80",
 					},
 				},
 			},
@@ -648,7 +648,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 				Name: "vs_default_cafe_vsr_default_coffee_coffee-v2",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "10.0.0.31:80",
+						Address: "10.0.0.31:80",
 					},
 				},
 			},
@@ -767,7 +767,7 @@ func TestGenerateVirtualServerConfigForVirtualServerWithRules(t *testing.T) {
 
 func TestGenerateUpstream(t *testing.T) {
 	name := "test-upstream"
-	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart:"10s"}
+	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s"}
 	endpoints := []string{
 		"192.168.10.10:8080",
 	}
@@ -794,7 +794,7 @@ func TestGenerateUpstream(t *testing.T) {
 		Keepalive: 21,
 	}
 
-	result := generateUpstream(name, upstream, false, endpoints, &cfgParams)
+	result := generateUpstream(name, upstream, false, endpoints, &cfgParams, true)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("generateUpstream() returned %v but expected %v", result, expected)
 	}
@@ -821,7 +821,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "192.168.10.10:8080",
+						Address: "192.168.10.10:8080",
 					},
 				},
 				Keepalive: 32,
@@ -835,7 +835,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "192.168.10.10:8080",
+						Address: "192.168.10.10:8080",
 					},
 				},
 				Keepalive: 21,
@@ -849,7 +849,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 				Name: "test-upstream",
 				Servers: []version2.UpstreamServer{
 					{
-						Address:   "192.168.10.10:8080",
+						Address: "192.168.10.10:8080",
 					},
 				},
 			},
@@ -858,7 +858,7 @@ func TestGenerateUpstreamWithKeepalive(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := generateUpstream(name, test.upstream, false, endpoints, test.cfgParams)
+		result := generateUpstream(name, test.upstream, false, endpoints, test.cfgParams, false)
 		if !reflect.DeepEqual(result, test.expected) {
 			t.Errorf("generateUpstream() returned %v but expected %v for the case of %v", result, test.expected, test.msg)
 		}
@@ -881,7 +881,7 @@ func TestGenerateUpstreamForExternalNameService(t *testing.T) {
 		},
 	}
 
-	result := generateUpstream(name, upstream, true, endpoints, &cfgParams)
+	result := generateUpstream(name, upstream, true, endpoints, &cfgParams, false)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("generateUpstream() returned %v but expected %v", result, expected)
 	}
@@ -1960,4 +1960,18 @@ func TestGenerateEndpointsForUpstream(t *testing.T) {
 				test.isPlus, test.isResolverConfigured, result, test.expected, test.msg)
 		}
 	}
+}
+
+func TestGenerateSlowStartForPlus(t *testing.T) {
+	name := "test-slowstart"
+	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s"}
+
+	lbMethod := generateLBMethod(upstream.LBMethod, "hash")
+	result := generateSlowStartForPlus(upstream, lbMethod)
+	expected := "10s"
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
+	}
+
 }
