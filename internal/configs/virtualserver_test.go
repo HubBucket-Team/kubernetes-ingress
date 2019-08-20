@@ -1964,8 +1964,16 @@ func TestGenerateEndpointsForUpstream(t *testing.T) {
 
 func TestGenerateSlowStartForPlus(t *testing.T) {
 	name := "test-slowstart"
-	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s"}
+	// slow_start is "10s" and the method is "hash $something", expects ""
+	// slow_start is "10s" and the method is "ip_hash", expects ""
+	// slow_start is "10s" and the method is "random", expects ""
+	// slow_start is "10s" and the method is "random two", expects ""
+	// slow_start is "10s" and the method is "random two least_conn", expects ""
+	// slow_start is "10s" and the method is "random two least_time=header", expects ""
+	// slow_start is "10s" and the method is "random two least_time=last_byte", expects ""
+
 	{
+		upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s"}
 		for _, lbMethod := range incompatibleLBMethodsForSlowStart {
 			lbMethod := generateLBMethod(upstream.LBMethod, lbMethod)
 			result := generateSlowStartForPlus(upstream, lbMethod)
@@ -1974,6 +1982,30 @@ func TestGenerateSlowStartForPlus(t *testing.T) {
 			if !reflect.DeepEqual(result, expected) {
 				t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
 			}
+		}
+	}
+
+	// slow start is "" and the method is "least_conn", expects ""
+	{
+		upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "", LBMethod: "least_conn"}
+		lbMethod := generateLBMethod(upstream.LBMethod, "least_conn")
+		result := generateSlowStartForPlus(upstream, lbMethod)
+		expected := ""
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
+		}
+	}
+
+	// slow_start is "10s" and the method is "least_conn", expects "10s"
+	{
+		upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s", LBMethod: "least_conn"}
+		lbMethod := generateLBMethod(upstream.LBMethod, "least_conn")
+		result := generateSlowStartForPlus(upstream, lbMethod)
+		expected := "10s"
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
 		}
 	}
 }
