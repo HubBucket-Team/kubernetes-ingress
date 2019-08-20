@@ -14,11 +14,15 @@ import (
 
 const nginx502Server = "unix:/var/run/nginx-502-server.sock"
 
-var incompatibleLBMethodsForSlowStart = map[string]bool{
-		"random":  true,
-		"ip-hash": true,
-		"hash":    true,
-	}
+var incompatibleLBMethodsForSlowStart = []string{
+	"random",
+	"ip-hash",
+	"hash",
+	"random two",
+	"random two least_conn",
+	"random two least_time=header",
+	"random two least_time=last_byte",
+}
 
 // VirtualServerEx holds a VirtualServer along with the resources that are referenced in this VirtualServer.
 type VirtualServerEx struct {
@@ -341,7 +345,6 @@ func generateVirtualServerConfig(virtualServerEx *VirtualServerEx, tlsPemFileNam
 func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isExternalNameSvc bool, endpoints []string, cfgParams *ConfigParams, isPlus bool) version2.Upstream {
 	var upsServers []version2.UpstreamServer
 	lbMethod := generateLBMethod(upstream.LBMethod, cfgParams.LBMethod)
-	slowStart := generateSlowStartForPlus(upstream, lbMethod)
 
 	for _, e := range endpoints {
 		s := version2.UpstreamServer{
@@ -353,15 +356,16 @@ func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isEx
 		}
 
 		if isPlus {
-			s.SlowStart = slowStart
+			s.SlowStart = generateSlowStartForPlus(upstream, lbMethod)
 		}
+
 		upsServers = append(upsServers, s)
 	}
 
 	return version2.Upstream{
 		Name:      upstreamName,
 		Servers:   upsServers,
-		LBMethod:  generateLBMethod(upstream.LBMethod, cfgParams.LBMethod),
+		LBMethod:  lbMethod,
 		Keepalive: generateIntFromPointer(upstream.Keepalive, cfgParams.Keepalive),
 	}
 }
@@ -369,15 +373,17 @@ func generateUpstream(upstreamName string, upstream conf_v1alpha1.Upstream, isEx
 func generateSlowStartForPlus(upstream conf_v1alpha1.Upstream, lbMethod string) string {
 
 	slowStart := upstream.SlowStart
-	var lLBMethod string
-	if strings.HasPrefix(lbMethod, "hash") {
-		lLBMethod, _ = validateHashLBMethod(lbMethod)
+
+	if slowStart == "" {
+		return ""
 	}
 
-	if upstream.SlowStart != "" && incompatibleLBMethodsForSlowStart[lLBMethod] {
-		//TODO trigger warning
-		glog.Warningf("slow-start will be disabled for the Upstream %v", upstream.Name)
-		slowStart = ""
+	for _, nLBMethod := range incompatibleLBMethodsForSlowStart {
+		if strings.Contains(lbMethod, nLBMethod) {
+			//TODO trigger warning
+			glog.Warningf("slow-start will be disabled for the Upstream %v", upstream.Name)
+			return ""
+		}
 	}
 
 	return slowStart

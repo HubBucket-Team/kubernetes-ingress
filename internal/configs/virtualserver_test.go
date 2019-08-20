@@ -787,7 +787,7 @@ func TestGenerateUpstream(t *testing.T) {
 				MaxFails:    1,
 				MaxConns:    0,
 				FailTimeout: "10s",
-				SlowStart:   "10s",
+				SlowStart:   "",
 			},
 		},
 		LBMethod:  "random",
@@ -1965,13 +1965,15 @@ func TestGenerateEndpointsForUpstream(t *testing.T) {
 func TestGenerateSlowStartForPlus(t *testing.T) {
 	name := "test-slowstart"
 	upstream := conf_v1alpha1.Upstream{Service: name, Port: 80, SlowStart: "10s"}
+	{
+		for _, lbMethod := range incompatibleLBMethodsForSlowStart {
+			lbMethod := generateLBMethod(upstream.LBMethod, lbMethod)
+			result := generateSlowStartForPlus(upstream, lbMethod)
+			expected := ""
 
-	lbMethod := generateLBMethod(upstream.LBMethod, "hash")
-	result := generateSlowStartForPlus(upstream, lbMethod)
-	expected := "10s"
-
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
+			if !reflect.DeepEqual(result, expected) {
+				t.Errorf("generateSlowStartForPlus returned %v, but expected %v", result, expected)
+			}
+		}
 	}
-
 }
